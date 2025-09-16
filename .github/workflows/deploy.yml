@@ -51,7 +51,6 @@ jobs:
         run: |
           # Build images với BuildKit
           docker-compose -f docker-compose.yml build backend frontend
-            --build-arg BUILDKIT_INLINE_CACHE=1
           # Push images
           docker-compose -f docker-compose.yml push backend frontend
         continue-on-error: false
