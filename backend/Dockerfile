@@ -1,11 +1,27 @@
-# backend/Dockerfile
-FROM openjdk:17-jdk-slim AS runtime
+# Stage 1: Build dependencies
+FROM node:18-alpine AS build
 
 WORKDIR /app
 
-# copy file jar đã build
-COPY target/*.jar app.jar
+# Copy package.json và package-lock.json (nếu có)
+COPY package*.json ./
 
-EXPOSE 8080
+# Cài đặt dependencies
+RUN npm install --production
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Copy toàn bộ source code
+COPY . .
+
+# Stage 2: Runtime
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy từ stage build
+COPY --from=build /app /app
+
+# Expose port backend (ví dụ 5000)
+EXPOSE 5000
+
+# Start app
+CMD ["npm", "start"]

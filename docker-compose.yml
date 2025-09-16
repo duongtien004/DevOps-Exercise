@@ -1,54 +1,30 @@
-version: "3.9"
+version: '3.8'
 
 services:
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    image: ${DOCKER_USERNAME}/shoe-backend:latest
-    container_name: shoe-backend
+    build: ./backend
+    image: ${DOCKER_USERNAME}/my-backend:latest
+    container_name: my-backend
+    restart: always
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/shoestore?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      - SPRING_DATASOURCE_USERNAME=tien123
-      - SPRING_DATASOURCE_PASSWORD=tien1234
+      - NODE_ENV=production
+      - PORT=5000
     ports:
-      - "8080:8080"
-    depends_on:
-      - db
+      - "5000:5000"
     networks:
       - app-network
-    restart: always
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    image: ${DOCKER_USERNAME}/shoe-frontend:latest
-    container_name: shoe-frontend
+    build: ./frontend
+    image: ${DOCKER_USERNAME}/my-frontend:latest
+    container_name: my-frontend
+    restart: always
     ports:
-      - "3000:80"
+      - "3000:80"   # map port 80 trong container ra ngoài 3000
+    networks:
+      - app-network
     depends_on:
       - backend
-    networks:
-      - app-network
-    restart: always
-
-  db:
-    image: mysql:8.0
-    container_name: shoe-db
-    environment:
-      MYSQL_ROOT_PASSWORD: Tien1234
-      MYSQL_DATABASE: shoestore
-    ports:
-      - "3306:3306"
-    volumes:
-      - db_data:/var/lib/mysql
-    networks:
-      - app-network
-    restart: always
-
-volumes:
-  db_data:
 
 networks:
   app-network:
