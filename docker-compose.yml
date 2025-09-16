@@ -3,12 +3,12 @@ version: '3.8'
 services:
   backend:
     build: ./backend
-    image: ${DOCKER_USERNAME}/my-backend:latest
+    image: duongtien004/my-backend:latest
     container_name: my-backend
     restart: always
     environment:
       - NODE_ENV=production
-      - HOSTNAME=0.0.0.0
+      - HOSTNAME=127.0.0.1
       - PORT=8088
       - MONGODB_URL=mongodb://mongo:27017/ecommerce
       - ACCESS_TOKEN=access_token
@@ -22,7 +22,7 @@ services:
 
   frontend:
     build: ./frontend
-    image: ${DOCKER_USERNAME}/my-frontend:latest
+    image: duongtien004/my-frontend:latest
     container_name: my-frontend
     restart: always
     ports:
