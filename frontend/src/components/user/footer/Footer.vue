@@ -4,7 +4,7 @@
             <div class="flex flex-wrap">
                 <div class="w-full lg:w-1/4 md:w-1/2 sm:w-1/2 mb-5">
                     <div class="footer-menu">
-                        <img src="../assets//images/logo.png" alt="logo" />
+                        <img src="@/assets/images/logo.png" />
                         <div class="social-links mt-5">
                             <ul class="flex space-x-2">
                                 <li>
