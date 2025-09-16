@@ -50,10 +50,10 @@ jobs:
           DB_CONNECTION_STRING: ${{ secrets.DB_CONNECTION_STRING }}
         run: |
           # Build images với BuildKit
-          docker-compose -f docker-compose.yml build \
+          docker-compose -f docker-compose.yml build backend frontend
             --build-arg BUILDKIT_INLINE_CACHE=1
           # Push images
-          docker-compose -f docker-compose.yml push backend-learnking
+          docker-compose -f docker-compose.yml push backend frontend
         continue-on-error: false
 
       - name: Deploy to production server
