@@ -8,9 +8,15 @@ services:
     restart: always
     environment:
       - NODE_ENV=production
-      - PORT=5000
+      - HOSTNAME=0.0.0.0
+      - PORT=8088
+      - MONGODB_URL=mongodb://mongo:27017/ecommerce
+      - ACCESS_TOKEN=access_token
+      - REFRESH_TOKEN=refresh_token
     ports:
-      - "5000:5000"
+      - "8088:8088"
+    depends_on:
+      - mongo
     networks:
       - app-network
 
@@ -20,12 +26,26 @@ services:
     container_name: my-frontend
     restart: always
     ports:
-      - "3000:80"   # map port 80 trong container ra ngoài 3000
+      - "3000:80"
     networks:
       - app-network
     depends_on:
       - backend
 
+  mongo:
+    image: mongo:6.0
+    container_name: mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  mongo_data:
