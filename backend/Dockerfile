@@ -3,10 +3,10 @@ FROM node:18-alpine AS build
 
 WORKDIR /app
 
-# Copy package.json và package-lock.json (nếu có)
+# Copy dependencies files
 COPY package*.json ./
 
-# Cài đặt dependencies
+# Cài dependencies (chỉ production để giảm dung lượng)
 RUN npm install --production
 
 # Copy toàn bộ source code
@@ -20,8 +20,13 @@ WORKDIR /app
 # Copy từ stage build
 COPY --from=build /app /app
 
-# Expose port backend (ví dụ 5000)
-EXPOSE 5000
+# Biến môi trường mặc định
+ENV NODE_ENV=production
+ENV PORT=8088
+ENV HOST=0.0.0.0
+
+# Expose port
+EXPOSE 8088
 
 # Start app
 CMD ["npm", "start"]
