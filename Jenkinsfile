@@ -91,7 +91,7 @@ pipeline {
                         scp -o StrictHostKeyChecking=no docker-compose.yml $SERVER_USER@$SERVER_HOST:$DEPLOY_PATH/docker-compose.yml
 
                         echo "⚙️ Running deployment commands on server..."
-                        ssh -T -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST << 'EOF'
+                        ssh -i -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST << 'EOF'
                             set -e
                             cd $DEPLOY_PATH
                             echo "DOCKER_USER=$DOCKER_USER" > .env
