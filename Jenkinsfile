@@ -5,11 +5,12 @@ pipeline {
         BACKEND_IMAGE = "my-backend"
         FRONTEND_IMAGE = "my-frontend"
         SERVER_HOST = "3.27.40.49"
-        SERVER_USER = "ubuntu"      // ⚠️ Dùng ubuntu, không phải root
+        SERVER_USER = "ubuntu"      // ⚠️ Không dùng root
         DEPLOY_PATH = "/home/ubuntu/project"
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 echo "📦 Checking out source code..."
@@ -29,8 +30,10 @@ pipeline {
                     dir('backend') {
                         withCredentials([usernamePassword(credentialsId: 'dockerhub-cred',
                             usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-
                             sh '''
+                            echo "🔐 Logging in to Docker Hub..."
+                            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                            
                             echo "🔧 Building backend Docker image..."
                             docker build -t docker.io/$DOCKER_USER/$BACKEND_IMAGE:latest .
                             '''
@@ -46,8 +49,10 @@ pipeline {
                     dir('frontend') {
                         withCredentials([usernamePassword(credentialsId: 'dockerhub-cred',
                             usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-
                             sh '''
+                            echo "🔐 Logging in to Docker Hub..."
+                            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                            
                             echo "🎨 Building frontend Docker image..."
                             docker build -t docker.io/$DOCKER_USER/$FRONTEND_IMAGE:latest .
                             '''
@@ -61,7 +66,6 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-cred',
                     usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-
                     sh '''
                     echo "📤 Pushing Docker images to Docker Hub..."
                     echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
@@ -86,7 +90,7 @@ pipeline {
                         echo "📦 Copying docker-compose.yml to server..."
                         scp -o StrictHostKeyChecking=no docker-compose.yml $SERVER_USER@$SERVER_HOST:$DEPLOY_PATH/docker-compose.yml
 
-                        echo "⚙️ Running deployment commands..."
+                        echo "⚙️ Running deployment commands on server..."
                         ssh -T -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST << 'EOF'
                             set -e
                             cd $DEPLOY_PATH
@@ -103,7 +107,7 @@ pipeline {
                             echo "📥 Pulling latest images..."
                             docker compose --env-file .env pull
 
-                            echo "🚀 Starting containers (detached)..."
+                            echo "🚀 Starting containers..."
                             docker compose --env-file .env up -d
 
                             echo "🧼 Cleaning unused images..."
