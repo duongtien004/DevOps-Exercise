@@ -13,16 +13,15 @@ services:
       - app-network
 
   backend:
-    build: ./backend
-    image: my-backend:latest
+    image: ${DOCKER_USER}/my-backend:latest   # ✅ image pull từ Docker Hub
     container_name: my-backend
     restart: always
     environment:
-      - NODE_ENV=production
-      - PORT=8088
-      - MONGODB_URL=mongodb://mongo:27017/ecommerce
-      - ACCESS_TOKEN=access_token
-      - REFRESH_TOKEN=refresh_token
+      NODE_ENV: production
+      PORT: 8088
+      MONGODB_URL: mongodb://mongo:27017/ecommerce
+      ACCESS_TOKEN: access_token
+      REFRESH_TOKEN: refresh_token
     ports:
       - "8088:8088"
     depends_on:
@@ -31,10 +30,11 @@ services:
       - app-network
 
   frontend:
-    build: ./frontend
-    image: my-frontend:latest
+    image: ${DOCKER_USER}/my-frontend:latest  # ✅ image pull từ Docker Hub
     container_name: my-frontend
     restart: always
+    environment:
+      - NODE_ENV=production
     ports:
       - "3000:80"
     depends_on:
