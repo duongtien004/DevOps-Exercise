@@ -2,11 +2,10 @@ pipeline {
     agent any
 
     environment {
-        REGISTRY = "docker.io/${DOCKER_USERNAME}"
         BACKEND_IMAGE = "my-backend"
         FRONTEND_IMAGE = "my-frontend"
-        SERVER_HOST = "3.107.161.103"
-        SERVER_USER = "ubuntu"   // ⚠️ Dùng 'ubuntu' chứ không phải 'root'
+        SERVER_HOST = "3.27.40.49"
+        SERVER_USER = "ubuntu"      // ⚠️ Dùng ubuntu, không phải root
         DEPLOY_PATH = "/home/ubuntu/project"
     }
 
@@ -30,10 +29,11 @@ pipeline {
                     dir('backend') {
                         withCredentials([usernamePassword(credentialsId: 'dockerhub-cred',
                             usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                            sh """
+
+                            sh '''
                             echo "🔧 Building backend Docker image..."
-                            docker build -t $REGISTRY/$BACKEND_IMAGE:latest .
-                            """
+                            docker build -t docker.io/$DOCKER_USER/$BACKEND_IMAGE:latest .
+                            '''
                         }
                     }
                 }
@@ -46,10 +46,11 @@ pipeline {
                     dir('frontend') {
                         withCredentials([usernamePassword(credentialsId: 'dockerhub-cred',
                             usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                            sh """
+
+                            sh '''
                             echo "🎨 Building frontend Docker image..."
-                            docker build -t $REGISTRY/$FRONTEND_IMAGE:latest .
-                            """
+                            docker build -t docker.io/$DOCKER_USER/$FRONTEND_IMAGE:latest .
+                            '''
                         }
                     }
                 }
@@ -60,12 +61,14 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-cred',
                     usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh """
+
+                    sh '''
                     echo "📤 Pushing Docker images to Docker Hub..."
                     echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                    docker push $REGISTRY/$BACKEND_IMAGE:latest
-                    docker push $REGISTRY/$FRONTEND_IMAGE:latest
-                    """
+                    docker push docker.io/$DOCKER_USER/$BACKEND_IMAGE:latest
+                    docker push docker.io/$DOCKER_USER/$FRONTEND_IMAGE:latest
+                    echo "✅ Push completed successfully!"
+                    '''
                 }
             }
         }
@@ -80,35 +83,34 @@ pipeline {
                     echo "🚀 Deploying to production server..."
                     sshagent (credentials: ['server-ssh-key']) {
                         sh '''
-                        # Copy docker-compose.yml lên server
+                        echo "📦 Copying docker-compose.yml to server..."
                         scp -o StrictHostKeyChecking=no docker-compose.yml $SERVER_USER@$SERVER_HOST:$DEPLOY_PATH/docker-compose.yml
 
-                        # SSH vào server để deploy
-                        ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST "
+                        echo "⚙️ Running deployment commands..."
+                        ssh -T -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST << 'EOF'
                             set -e
                             cd $DEPLOY_PATH
-                            echo '🧩 Cập nhật file .env...'
-                            echo \\"DOCKER_USER=$DOCKER_USER\\" > .env
-                            echo \\"DOCKER_PASS=$DOCKER_PASS\\" >> .env
-                            echo \\"MONGODB_URI=$MONGODB_URI\\" >> .env
+                            echo "DOCKER_USER=$DOCKER_USER" > .env
+                            echo "DOCKER_PASS=$DOCKER_PASS" >> .env
+                            echo "MONGODB_URI=$MONGODB_URI" >> .env
 
-                            echo '🔐 Login Docker Hub...'
+                            echo "🔐 Logging in Docker Hub..."
                             echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
 
-                            echo '📦 Pulling latest images...'
+                            echo "🧹 Stopping old containers..."
+                            docker compose down || true
+
+                            echo "📥 Pulling latest images..."
                             docker compose --env-file .env pull
 
-                            echo '🧹 Stopping old containers...'
-                            docker compose down
-
-                            echo '🚀 Starting new containers...'
+                            echo "🚀 Starting containers (detached)..."
                             docker compose --env-file .env up -d
 
-                            echo '🧼 Cleaning up unused images...'
+                            echo "🧼 Cleaning unused images..."
                             docker image prune -f
 
-                            echo '✅ Deployment completed successfully.'
-                        "
+                            echo "✅ Deployment completed successfully!"
+                        EOF
                         '''
                     }
                 }
@@ -117,11 +119,11 @@ pipeline {
     }
 
     post {
-        failure {
-            echo "❌ Pipeline failed! Check Jenkins logs for errors."
-        }
         success {
-            echo "✅ CI/CD pipeline finished successfully!"
+            echo "✅ CI/CD pipeline completed successfully!"
+        }
+        failure {
+            echo "❌ Pipeline failed! Check Jenkins logs for details."
         }
     }
 }
