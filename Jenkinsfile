@@ -5,8 +5,8 @@ pipeline {
         REGISTRY = "docker.io/${DOCKER_USERNAME}"
         BACKEND_IMAGE = "my-backend"
         FRONTEND_IMAGE = "my-frontend"
-        SERVER_HOST = "3.27.239.51"
-        SERVER_USER = "duongtien004"
+        SERVER_HOST = "3.107.161.103"
+        SERVER_USER = "root"
     }
 
     stages {
@@ -16,7 +16,7 @@ pipeline {
                     branches: [[name: '*/main']],
                     userRemoteConfigs: [[
                         url: 'https://github.com/duongtien004/DevOps-Exercise.git',
-                        credentialsId: 'github-token'
+                        credentialsId: 'github-pat'
                     ]]
                 ])
             }
