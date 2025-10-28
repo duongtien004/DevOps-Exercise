@@ -10,7 +10,6 @@ pipeline {
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 echo "📦 Checking out source code..."
@@ -28,11 +27,7 @@ pipeline {
             steps {
                 script {
                     dir('backend') {
-                        withCredentials([usernamePassword(
-                            credentialsId: 'dockerhub-cred',
-                            usernameVariable: 'DOCKER_USER',
-                            passwordVariable: 'DOCKER_PASS'
-                        )]) {
+                        withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                             sh '''
                             echo "🔐 Logging in to Docker Hub..."
                             echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
@@ -49,11 +44,7 @@ pipeline {
             steps {
                 script {
                     dir('frontend') {
-                        withCredentials([usernamePassword(
-                            credentialsId: 'dockerhub-cred',
-                            usernameVariable: 'DOCKER_USER',
-                            passwordVariable: 'DOCKER_PASS'
-                        )]) {
+                        withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                             sh '''
                             echo "🔐 Logging in to Docker Hub..."
                             echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
@@ -68,11 +59,7 @@ pipeline {
 
         stage('Push Docker Images') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-cred',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
                     echo "📤 Pushing Docker images to Docker Hub..."
                     echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
@@ -87,17 +74,12 @@ pipeline {
         stage('Deploy to Server') {
             steps {
                 withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub-cred',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    ),
+                    usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS'),
                     string(credentialsId: 'mongodb-uri', variable: 'MONGODB_URI')
                 ]) {
-                    sshagent (credentials: ['ubuntu']) {
+                    sshagent (credentials: ['ubuntu']) {  // ✅ fix lỗi credential
                         sh '''
                         echo "🚀 Deploying to production server..."
-
                         echo "📦 Copying docker-compose.yml to server..."
                         scp -o StrictHostKeyChecking=no docker-compose.yml $SERVER_USER@$SERVER_HOST:/home/$SERVER_USER/project/docker-compose.yml
 
@@ -133,11 +115,7 @@ pipeline {
     }
 
     post {
-        success {
-            echo "✅ Pipeline completed successfully!"
-        }
-        failure {
-            echo "❌ Pipeline failed! Check Jenkins logs for details."
-        }
+        success { echo "✅ Pipeline completed successfully!" }
+        failure { echo "❌ Pipeline failed! Check Jenkins logs for details." }
     }
 }
