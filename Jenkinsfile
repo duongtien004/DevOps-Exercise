@@ -77,7 +77,7 @@ pipeline {
                     usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS'),
                     string(credentialsId: 'mongodb-uri', variable: 'MONGODB_URI')
                 ]) {
-                    sshagent (credentials: ['ubuntu']) {  // ✅ fix lỗi credential
+                    sshagent (credentials: ['server-ssh-key']) {  // ✅ dùng đúng ID credential của bạn
                         sh '''
                         echo "🚀 Deploying to production server..."
                         echo "📦 Copying docker-compose.yml to server..."
