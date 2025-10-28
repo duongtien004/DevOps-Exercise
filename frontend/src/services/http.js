@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useUserStore } from "@/stores/user";
 
-const APP_API_URL = "http://localhost:8088/api/";
+const APP_API_URL = import.meta.env.VITE_API_URL;
 // const Cookie = require("js-cookie");
 export default class Http {
   constructor(status) {
