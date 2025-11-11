@@ -1,27 +1,15 @@
 # Stage 1: Build app
-FROM node:18-alpine AS build
-
+FROM node:18-alpine AS builder
 WORKDIR /app
-
 COPY package*.json ./
-RUN npm install
-
+RUN npm ci
 COPY . .
+RUN npm run build   # Đảm bảo có script "build" trong package.json
 
-# Build ra thư mục dist (với Vue) hoặc build (với React)
-RUN npm run build
-
-# Stage 2: Nginx serve static files
+# Stage 2: Serve với Nginx + fallback
 FROM nginx:alpine
-
-# Copy file build ra Nginx
-COPY --from=build /app/dist /usr/share/nginx/html
-# hoặc nếu là React:
-# COPY --from=build /app/build /usr/share/nginx/html
-
-# Copy nginx config nếu cần router mode
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
-
 CMD ["nginx", "-g", "daemon off;"]
