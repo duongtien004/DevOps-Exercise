@@ -3,7 +3,7 @@ version: '3.8'
 services:
   mongo:
     image: mongo:6.0
-    container_name: mongo
+    container_name: mongo-db
     restart: always
     ports:
       - "27017:27017"
@@ -11,26 +11,31 @@ services:
       - mongo_data:/data/db
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
-    image: ${DOCKER_USER}/my-backend:latest   # ✅ image pull từ Docker Hub
+    image: ${DOCKER_USER}/my-backend:latest
     container_name: my-backend
     restart: always
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
       PORT: 8088
-      MONGODB_URL: mongodb://mongo:27017/ecommerce
-      ACCESS_TOKEN: access_token
-      REFRESH_TOKEN: refresh_token
     ports:
       - "8088:8088"
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
     networks:
       - app-network
 
   frontend:
-    image: ${DOCKER_USER}/my-frontend:latest  # ✅ image pull từ Docker Hub
+    image: ${DOCKER_USER}/my-frontend:latest
     container_name: my-frontend
     restart: always
     environment:

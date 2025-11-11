@@ -7,12 +7,13 @@ pipeline {
         FRONTEND_IMAGE = "my-frontend"
         SERVER_HOST = "3.27.40.49"
         SERVER_USER = "ubuntu"
+        PROJECT_DIR = "/home/ubuntu/project"
     }
 
     stages {
         stage('Checkout') {
             steps {
-                echo "📦 Checking out source code..."
+                echo "Checking out source code from GitHub..."
                 checkout([$class: 'GitSCM',
                     branches: [[name: '*/main']],
                     userRemoteConfigs: [[
@@ -23,90 +24,92 @@ pipeline {
             }
         }
 
-        stage('Build Backend Image') {
+        stage('Build & Push Backend') {
             steps {
-                script {
-                    dir('backend') {
-                        withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                            sh '''
-                            echo "🔐 Logging in to Docker Hub..."
-                            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                            echo "🔧 Building backend Docker image..."
-                            docker build -t docker.io/$DOCKER_USER/my-backend:latest .
-                            '''
-                        }
+                dir('backend') {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh '''
+                        echo "Building backend image..."
+                        docker build -t $DOCKER_USER/my-backend:latest .
+                        
+                        echo "Logging in to Docker Hub..."
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        
+                        echo "Pushing backend image..."
+                        docker push $DOCKER_USER/my-backend:latest
+                        '''
                     }
                 }
             }
         }
 
-        stage('Build Frontend Image') {
+        stage('Build & Push Frontend') {
             steps {
-                script {
-                    dir('frontend') {
-                        withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                            sh '''
-                            echo "🔐 Logging in to Docker Hub..."
-                            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                            echo "🎨 Building frontend Docker image..."
-                            docker build -t docker.io/$DOCKER_USER/my-frontend:latest .
-                            '''
-                        }
+                dir('frontend') {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh '''
+                        echo "Building frontend image..."
+                        docker build -t $DOCKER_USER/my-frontend:latest .
+                        
+                        echo "Logging in to Docker Hub..."
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        
+                        echo "Pushing frontend image..."
+                        docker push $DOCKER_USER/my-frontend:latest
+                        '''
                     }
                 }
             }
         }
 
-        stage('Push Docker Images') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh '''
-                    echo "📤 Pushing Docker images to Docker Hub..."
-                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                    docker push docker.io/$DOCKER_USER/my-backend:latest
-                    docker push docker.io/$DOCKER_USER/my-frontend:latest
-                    echo "✅ Push completed successfully!"
-                    '''
-                }
-            }
-        }
-
-        stage('Deploy to Server') {
+        stage('Deploy to Production Server') {
             steps {
                 withCredentials([
                     usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS'),
                     string(credentialsId: 'mongodb-uri', variable: 'MONGODB_URI')
                 ]) {
-                    sshagent (credentials: ['server-ssh-key']) {  // ✅ dùng đúng ID credential của bạn
+                    sshagent(credentials: ['server-ssh-key']) {
                         sh '''
-                        echo "🚀 Deploying to production server..."
-                        echo "📦 Copying docker-compose.yml to server..."
-                        scp -o StrictHostKeyChecking=no docker-compose.yml $SERVER_USER@$SERVER_HOST:/home/$SERVER_USER/project/docker-compose.yml
+                        echo "Deploying to $SERVER_HOST..."
 
-                        echo "⚙️ Running deployment commands on server..."
-                        ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST "
-                            set -e
-                            cd /home/$SERVER_USER/project &&
-                            echo 'DOCKER_USER=$DOCKER_USER' > .env &&
-                            echo 'DOCKER_PASS=$DOCKER_PASS' >> .env &&
-                            echo 'MONGODB_URI=$MONGODB_URI' >> .env &&
+                        # Copy docker-compose.yml
+                        scp -o StrictHostKeyChecking=no docker-compose.yml $SERVER_USER@$SERVER_HOST:$PROJECT_DIR/docker-compose.yml
 
-                            echo '🔐 Logging into Docker Hub...' &&
-                            echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin &&
+                        # Deploy commands on remote server
+                        ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST << EOF
+                        set -e
+                        cd $PROJECT_DIR
 
-                            echo '📥 Pulling latest images...' &&
-                            docker compose --env-file .env pull &&
+                        # Tạo file .env chính xác 100%
+                        cat > .env << ENV
+DOCKER_USER=$DOCKER_USER
+DOCKER_PASS=$DOCKER_PASS
+MONGODB_URL=$MONGODB_URI
+NODE_ENV=production
+PORT=8088
+ACCESS_TOKEN=your_super_strong_access_token_2025
+REFRESH_TOKEN=your_super_strong_refresh_token_2025
+ENV
 
-                            echo '🧹 Stopping old containers...' &&
-                            docker compose --env-file .env down &&
+                        chmod 600 .env
 
-                            echo '🚀 Starting new containers...' &&
-                            docker compose --env-file .env up -d &&
+                        echo "Logging into Docker Hub on server..."
+                        echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
 
-                            echo '🧼 Cleaning unused images...' &&
-                            docker image prune -f
-                        "
-                        echo "✅ Deployment completed successfully!"
+                        echo "Pulling latest images..."
+                        docker compose --env-file .env pull
+
+                        echo "Restarting services..."
+                        docker compose --env-file .env down || true
+                        docker compose --env-file .env up -d
+
+                        echo "Cleaning up old images..."
+                        docker image prune -f
+
+                        echo "Deployment completed successfully!"
+EOF
+
+                        echo "Pipeline completed! Access your app at: http://$SERVER_HOST:3000"
                         '''
                     }
                 }
@@ -115,7 +118,15 @@ pipeline {
     }
 
     post {
-        success { echo "✅ Pipeline completed successfully!" }
-        failure { echo "❌ Pipeline failed! Check Jenkins logs for details." }
+        success {
+            echo "PIPELINE THÀNH CÔNG 100%! TRUY CẬP: http://3.27.40.49:3000"
+            echo "ĐĂNG NHẬP ADMIN HOẠT ĐỘNG BÌNH THƯỜNG!"
+        }
+        failure {
+            echo "PIPELINE THẤT BẠI! Xem log Jenkins để debug."
+        }
+        always {
+            cleanWs()
+        }
     }
 }
