@@ -119,7 +119,7 @@ EOF
 
     post {
         success {
-            echo "PIPELINE THÀNH CÔNG 100%! TRUY CẬP: http://3.27.40.49:3000"
+            echo "PIPELINE THÀNH CÔNG 100%! TRUY CẬP: http://3.107.162.71:3000"
             echo "ĐĂNG NHẬP ADMIN HOẠT ĐỘNG BÌNH THƯỜNG!"
         }
         failure {
