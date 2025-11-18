@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useUserStore } from "@/stores/user";
 
-const APP_API_URL = "http://3.107.162.71:8088/api";
+const APP_API_URL = "http://16.176.145.85:8088/api";
 // const Cookie = require("js-cookie");
 export default class Http {
   constructor(status) {

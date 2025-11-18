@@ -5,7 +5,7 @@ pipeline {
         REGISTRY = "docker.io/${DOCKER_USERNAME}"
         BACKEND_IMAGE = "my-backend"
         FRONTEND_IMAGE = "my-frontend"
-        SERVER_HOST = "3.107.162.71"
+        SERVER_HOST = "16.176.145.85"
         SERVER_USER = "ubuntu"
         PROJECT_DIR = "/home/ubuntu/project"
     }
@@ -119,7 +119,7 @@ EOF
 
     post {
         success {
-            echo "PIPELINE THÀNH CÔNG 100%! TRUY CẬP: http://3.107.162.71:3000"
+            echo "PIPELINE THÀNH CÔNG 100%! TRUY CẬP: http://16.176.145.85:3000"
             echo "ĐĂNG NHẬP ADMIN HOẠT ĐỘNG BÌNH THƯỜNG!"
         }
         failure {
